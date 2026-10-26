@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bolt Scheduled — clickable prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --stage:#DDE5E0; --stage-ink:#1C2420; --stage-muted:#56625B; --panel:#F6F8F6; --panel-line:#C9D3CD;
+  --green:#34D186; --green-deep:#2FB874; --green-ink:#0F5B37; --green-tint:#E6F8EE;
+  --ink:#1F2124; --muted:#6B7177; --line:#E6E8EA; --card:#F3F4F5; --app:#FFFFFF;
+  --red:#E8364A; --amber:#F5A623; --violet:#5B5CE8; --map:#EEF1EE; --road:#FFFFFF; --water:#CFE3EF;
+  --font:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --stage:#18201C; --stage-ink:#E7EEEA; --stage-muted:#9AA9A1; --panel:#212A25; --panel-line:#34413A; color-scheme:dark;
+}}
+:root[data-theme="dark"]{--stage:#18201C; --stage-ink:#E7EEEA; --stage-muted:#9AA9A1; --panel:#212A25; --panel-line:#34413A; color-scheme:dark;}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--stage);color:var(--stage-ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--green-deep);outline-offset:2px}
+
+/* ---------- stage layout ---------- */
+.stage{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(260px,330px) auto minmax(240px,300px);gap:32px;justify-content:center;align-items:start;padding:28px 24px;min-height:100vh}
+.side{position:sticky;top:24px;display:flex;flex-direction:column;gap:18px}
+.brand h1{font-size:26px;line-height:1.1;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+.brand p{margin:0;color:var(--stage-muted);font-size:14px;line-height:1.5;max-width:34ch}
+.box{background:var(--panel);border:1px solid var(--panel-line);border-radius:16px;padding:16px}
+.box h2{font-size:14px;font-weight:700;margin:0 0 10px}
+.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+.steps li{counter-increment:s}
+.steps button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:7px 6px;border-radius:10px;font-size:13.5px;color:var(--stage-ink)}
+.steps button::before{content:counter(s);display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--panel-line);font-size:11.5px;font-weight:700;color:var(--stage-muted)}
+.steps button[aria-current="step"]{background:var(--green-tint);color:#0F3D27}
+.steps button[aria-current="step"]::before{background:var(--green);border-color:var(--green);color:#fff}
+.seg{display:flex;background:var(--stage);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:9px;font-size:13px;font-weight:600;color:var(--stage-muted)}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--stage-ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.ctl{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.ctl:last-child{margin-bottom:0}
+.ctl label,.ctl .lbl{font-size:12.5px;color:var(--stage-muted);font-weight:600}
+.ctl select{appearance:none;background:var(--stage);border:1px solid var(--panel-line);color:var(--stage-ink);border-radius:10px;padding:8px 10px;font:inherit;font-size:13.5px}
+.sim{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sim button{border:1px solid var(--panel-line);background:var(--stage);border-radius:10px;padding:8px;font-size:12.5px;font-weight:600;text-align:left;color:var(--stage-ink)}
+.sim button:hover{border-color:var(--green-deep)}
+.toggle{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600}
+.switch{width:42px;height:24px;border-radius:12px;border:0;background:var(--panel-line);position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.switch[aria-checked="true"]{background:var(--green)}
+.switch[aria-checked="true"]::after{left:21px}
+.why-log{font-size:13px;line-height:1.5;color:var(--stage-muted)}
+.why-log strong{display:block;color:var(--stage-ink);font-size:14px;margin-bottom:4px}
+.why-log .ev{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--stage);color:var(--stage-ink);font-size:12.5px}
+.kpis{display:grid;gap:8px}
+.kpi{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--stage-muted)}
+.kpi b{color:var(--stage-ink);font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ---------- phone ---------- */
+.phone-wrap{width:390px;height:844px;transform-origin:top center}
+.phone{position:relative;width:390px;height:844px;border-radius:52px;background:#0E0F10;padding:11px;box-shadow:0 30px 60px -20px rgba(10,30,20,.45),inset 0 0 0 2px #2A2D30}
+.screen{position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;background:var(--app);color:var(--ink)}
+.notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:118px;height:33px;background:#0E0F10;border-radius:20px;z-index:40}
+.status{position:absolute;top:0;left:0;right:0;height:48px;display:flex;justify-content:space-between;align-items:center;padding:6px 30px 0 34px;font-size:15px;font-weight:700;z-index:30;pointer-events:none}
+.status .icons{display:flex;gap:6px;align-items:center}
+.view{position:absolute;inset:0;display:flex;flex-direction:column}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#111;z-index:60}
+
+.map{position:absolute;inset:0;background:var(--map)}
+.map svg{width:100%;height:100%;display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--app);border-radius:22px 22px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.08);padding:10px 16px 0;display:flex;flex-direction:column}
+.grab{width:36px;height:4px;border-radius:2px;background:#D5D8DB;margin:0 auto 12px}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid var(--line);padding:8px 0 28px;margin:12px -16px 0;background:var(--app)}
+.tabbar span{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);font-weight:600}
+.tabbar span.on{color:var(--ink)}
+.tabbar svg{width:20px;height:20px}
+.h-xl{font-size:21px;font-weight:800;letter-spacing:-.01em;margin:4px 0 12px}
+.h-lg{font-size:18px;font-weight:800;margin:0}
+.sub{font-size:13px;color:var(--muted)}
+.card{background:var(--card);border-radius:14px}
+.rides-card{display:flex;align-items:center;gap:14px;padding:12px 14px;margin-bottom:10px}
+.rides-card b{display:block;font-size:15px}
+.where{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 14px;font-size:15px;font-weight:600}
+.where .q{flex:1;display:flex;align-items:center;gap:8px;color:var(--ink)}
+.nl{display:flex;background:#fff;border-radius:11px;padding:3px;gap:2px;box-shadow:0 0 0 1px var(--line)}
+.nl button{border:0;background:none;border-radius:9px;padding:9px 12px;font-size:13.5px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:5px}
+.nl button.on{background:var(--ink);color:#fff}
+.nl button.later{color:var(--green-ink)}
+.newtag{font-size:10px;font-weight:800;background:var(--green);color:#fff;border-radius:6px;padding:1px 5px}
+.banner{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:14px;font-size:13px;font-weight:600}
+.upcoming{display:flex;gap:12px;align-items:center;padding:12px 14px;margin-bottom:10px;background:var(--green-tint);border-radius:14px;border:0;width:100%;text-align:left}
+.upcoming b{font-size:14.5px;display:block}
+.upcoming .sub{color:#2C5E45}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;border-radius:20px;padding:3px 9px}
+.pill.green{background:var(--green-tint);color:var(--green-ink)}
+.pill.dark{background:var(--ink);color:#fff}
+.pill.amber{background:#FFF1D6;color:#7A4A00}
+.pill.red{background:#FDE4E7;color:#9B1B2C}
+
+.topbar{display:flex;align-items:center;gap:10px;padding:54px 16px 10px}
+.iconbtn{width:38px;height:38px;border-radius:50%;border:0;background:var(--card);display:grid;place-items:center;flex:none}
+.iconbtn svg{width:18px;height:18px}
+.scroll{flex:1;overflow:auto;padding:0 16px 16px}
+.route{display:flex;flex-direction:column;gap:0;padding:6px 14px;margin-bottom:14px}
+.route .r{display:flex;align-items:center;gap:12px;padding:9px 0;font-size:14px;font-weight:600}
+.route .r+.r{border-top:1px solid var(--line)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.section-t{font-size:13px;font-weight:700;color:var(--muted);margin:16px 0 8px}
+.dates{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.dates button{flex:none;width:58px;border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px}
+.dates button small{font-size:11px;color:var(--muted);font-weight:600}
+.dates button b{font-size:17px}
+.dates button.on{border-color:var(--green-deep);background:var(--green-tint)}
+.dates button:disabled{opacity:.35;cursor:not-allowed}
+.times{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.times button{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 0;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.times button.on{border-color:var(--green-deep);background:var(--green-tint)}
+.flight{display:flex;flex-direction:column;gap:10px;padding:12px 14px}
+.flight-tabs{display:flex;gap:6px}
+.flight-tabs button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:9px;font-size:13px;font-weight:700}
+.flight-tabs button.on{border-color:var(--ink);background:var(--ink);color:#fff}
+.field{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:0 12px}
+.field input{border:0;outline:0;flex:1;font:inherit;font-size:14px;font-weight:600;padding:10px 0;background:none;color:var(--ink);min-width:0}
+.hint{font-size:12.5px;color:#2C5E45;background:var(--green-tint);border-radius:10px;padding:8px 10px;line-height:1.4}
+.footer{padding:12px 16px 30px;border-top:1px solid var(--line);background:var(--app)}
+.cta{width:100%;border:0;background:var(--green-deep);color:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:800}
+.cta:disabled{background:#BFE9D3}
+.cta.ghost{background:var(--card);color:var(--ink)}
+.cta.danger{background:var(--red)}
+.row{display:flex;gap:8px;align-items:center}
+.opt{display:flex;align-items:center;gap:12px;width:100%;border:1.5px solid transparent;background:none;border-radius:14px;padding:10px;text-align:left}
+.opt.on{border-color:var(--green-deep);background:var(--green-tint)}
+.opt .meta{flex:1}
+.opt .meta b{font-size:15px;display:block}
+.opt .price{text-align:right;font-variant-numeric:tabular-nums}
+.opt .price b{font-size:15px;display:block}
+.opt .price .surge{font-size:11px;color:var(--muted);display:block}
+.lockbar{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--violet);color:#fff;font-size:12.5px;font-weight:700;padding:8px;margin:0 -16px 8px;border:0;width:calc(100% + 32px)}
+.kv{display:flex;justify-content:space-between;font-size:14px;padding:8px 0}
+.kv+.kv{border-top:1px solid var(--line)}
+.kv.total{font-weight:800;font-size:16px}
+.note{font-size:12.5px;color:var(--muted);line-height:1.45}
+.big-time{font-size:44px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{display:flex;gap:12px;padding:8px 0;font-size:13.5px}
+.timeline li i{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:none;background:var(--line)}
+.timeline li.done i{background:var(--green)}
+.timeline li.now i{background:var(--ink);box-shadow:0 0 0 4px #E1E3E5}
+.timeline li span{color:var(--muted);display:block;font-size:12.5px}
+.driver{display:flex;flex-direction:column;align-items:center;padding:6px 0 10px}
+.avatar{width:72px;height:72px;border-radius:50%;background:#FFE7B8;border:3px solid #F4C04B;display:grid;place-items:center;font-size:26px;font-weight:800;color:#8A5A00;position:relative}
+.avatar .star{position:absolute;right:-4px;top:-4px;width:24px;height:24px;border-radius:50%;background:#F4C04B;color:#fff;display:grid;place-items:center;font-size:13px}
+.actions3{display:flex;justify-content:space-around;width:100%;margin-top:12px}
+.actions3 span{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);font-weight:600}
+.actions3 i{width:42px;height:42px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-style:normal}
+.carimg{background:var(--card);border-radius:16px;display:grid;place-items:center;padding:14px 0 6px}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:14px;font-size:13px;line-height:1.45;margin-bottom:10px}
+.alert.ok{background:var(--green-tint);color:#174D33}
+.alert.warn{background:#FFF4DE;color:#5F3B00}
+.alert.bad{background:#FDE8EB;color:#7A1424}
+.stars{display:flex;justify-content:center;gap:8px;margin:8px 0}
+.stars button{border:0;background:none;font-size:34px;line-height:1;color:#F5B700;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chips button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font-size:13px;font-weight:600}
+.chips button.on{border-color:var(--green-deep);background:var(--green-tint);color:var(--green-ink)}
+.job{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:#fff;border-radius:16px;padding:12px 14px;margin-bottom:10px}
+.job .top{display:flex;justify-content:space-between;align-items:baseline}
+.job .t{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.job .earn{text-align:right}
+.job .earn b{font-size:16px;display:block;font-variant-numeric:tabular-nums}
+.job .earn span{font-size:12px;color:var(--green-ink);font-weight:700}
+.job .ln{font-size:13.5px;margin-top:8px;display:flex;gap:8px;align-items:center}
+.job.mine{border-color:var(--green-deep)}
+.filters{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
+.filters span{flex:none;font-size:12.5px;font-weight:700;border-radius:20px;padding:6px 11px;background:var(--card)}
+.filters span.on{background:var(--ink);color:#fff}
+.earnbar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:6px 0 4px}
+
+/* ---------- popups inside phone ---------- */
+.scrim{position:absolute;inset:0;background:rgba(18,22,20,.42);z-index:70;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.pop{width:100%;background:#fff;border-radius:24px 24px 0 0;padding:12px 18px 34px;transform:translateY(24px);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-height:82%;overflow:auto}
+.scrim.open .pop{transform:none}
+.pop .close{position:absolute;right:16px;top:14px}
+.why{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--green-ink);background:var(--green-tint);border-radius:20px;padding:4px 10px;margin-bottom:10px}
+.pop h3{font-size:20px;line-height:1.2;margin:0 0 8px;font-weight:800;letter-spacing:-.01em}
+.pop p{margin:0 0 10px;font-size:14px;line-height:1.5;color:#3B4046}
+.pop ul{margin:0 0 12px;padding-left:18px;font-size:14px;line-height:1.5;color:#3B4046}
+.pop .ev{background:var(--card);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.45;margin-bottom:14px}
+.pop .ev b{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+.pop .tag{font-size:12px;color:var(--muted);margin-bottom:12px}
+.toast{position:absolute;left:16px;right:16px;top:54px;z-index:65;background:var(--ink);color:#fff;border-radius:14px;padding:11px 14px;font-size:13.5px;font-weight:600;transform:translateY(-12px);opacity:0;visibility:hidden;transition:transform .3s,opacity .3s,visibility .3s}
+.toast.show{transform:none;opacity:1;visibility:visible}
+.sheet-modal .pop{text-align:center}
+
+
+.page{max-width:1240px;margin:0 auto;padding:20px 24px 0}
+.howto{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:start;background:var(--panel);border:1px solid var(--panel-line);border-radius:16px;padding:14px 18px}
+.howto h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0;grid-row:span 2;align-self:center;padding-right:18px;border-right:1px solid var(--panel-line)}
+.howto ol{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13.5px;line-height:1.45}
+.howto li{display:flex;gap:8px;align-items:baseline}
+.howto li b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-size:11.5px;flex:none}
+.howto p{margin:0;font-size:12.5px;color:var(--stage-muted)}
+.scen{display:flex;flex-direction:column;gap:6px}
+.scen button{display:flex;flex-direction:column;gap:2px;text-align:left;border:1.5px solid var(--panel-line);background:var(--stage);border-radius:12px;padding:9px 12px;color:var(--stage-ink)}
+.scen button b{font-size:13.5px}
+.scen button span{font-size:12px;color:var(--stage-muted);line-height:1.35}
+.scen button[aria-pressed="true"]{border-color:var(--green-deep);background:var(--green-tint);color:#0F3D27}
+.scen button[aria-pressed="true"] span{color:#2C5E45}
+.scen button:not([aria-pressed="true"]) span{display:none}
+.scen .grp{font-size:12px;font-weight:700;color:var(--stage-muted);margin:6px 2px 0}
+.nav{display:flex;gap:8px;margin-top:12px}
+.nav button{flex:1;border:0;border-radius:11px;padding:10px;font-weight:700;font-size:14px}
+.nav .prev{background:var(--stage);color:var(--stage-ink)}
+.nav .next{background:var(--green-deep);color:#fff}
+.nav button:disabled{opacity:.4;cursor:not-allowed}
+.now{font-size:12.5px;color:var(--stage-muted);margin:-4px 0 10px}
+details.box summary{font-size:14px;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+details.box summary::after{content:"+";color:var(--stage-muted)}
+details.box[open] summary::after{content:"−"}
+details.box[open] summary{margin-bottom:12px}
+details .what{font-size:12px;color:var(--stage-muted);margin:-2px 0 10px;line-height:1.4}
+@media (max-width:760px){.howto{grid-template-columns:1fr}.howto h1{border:0;padding:0;grid-row:auto}}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:1180px){.stage{grid-template-columns:minmax(260px,330px) auto}.right{display:none}}
+@media (max-width:760px){
+  .stage{grid-template-columns:1fr;padding:16px 12px;gap:16px}
+  .side{position:static}
+  .left{order:2}.phone-col{order:1;display:flex;justify-content:center}
+}
+</style>
+</head>
+<body>
+<div class="page"><section class="howto" aria-label="How to use this prototype">
+  <h1>Bolt Scheduled</h1>
+  <ol>
+    <li><b>1</b><span><strong>Pick a scenario</strong> on the left, such as “Driver drops out”.</span></li>
+    <li><b>2</b><span><strong>Tap through the phone</strong> as the user would, or press <strong>Next</strong> to advance.</span></li>
+    <li><b>3</b><span><strong>Read “Why this?”</strong> when it pops up; the same note stays on the right for the room.</span></li>
+  </ol>
+  <p>The journey list changes with each scenario. Pilot settings (city, booking window) are optional and change prices and places inside the phone.</p>
+</section></div>
+<div class="stage">
+  <aside class="side left">
+    <div class="box">
+      <h2>1. Pick a scenario</h2>
+      <div class="scen" id="scen"></div>
+    </div>
+    <div class="box">
+      <h2 id="steps-title">2. Follow the journey</h2>
+      <p class="now" id="nowTxt"></p>
+      <ol class="steps" id="steps"></ol>
+      <div class="nav"><button type="button" class="prev" id="prevBtn">Back</button><button type="button" class="next" id="nextBtn">Next</button></div>
+    </div>
+    <details class="box">
+      <summary>Pilot settings (optional)</summary>
+      <div class="ctl"><label for="city">Pilot city</label>
+        <select id="city"><option value="lisbon">Lisbon (EUR)</option><option value="warsaw">Warsaw (PLN)</option><option value="nairobi">Nairobi (KES)</option></select>
+        <div class="what">Changes currency, addresses, airport and driver name.</div></div>
+      </div>
+      <div class="ctl"><label for="win">Booking window</label>
+        <select id="win"><option value="7">Up to 7 days ahead</option><option value="30">Up to 30 days ahead</option></select>
+        <div class="what">Changes which days the rider can pick.</div></div>
+      <div class="ctl"><div class="toggle"><span id="why-label">Show “Why this?” popups</span><button type="button" class="switch" id="whySwitch" role="switch" aria-checked="true" aria-labelledby="why-label"></button></div></div>
+    </details>
+  </aside>
+
+  <div class="phone-col">
+    <div class="phone-wrap" id="phoneWrap">
+      <div class="phone">
+        <div class="screen" id="screen">
+          <div class="notch"></div>
+          <div class="status"><span>09:41</span><span class="icons">
+            <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
+            <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.4 6.4a7 7 0 0 1 9.2 0l1.5-1.8a9.4 9.4 0 0 0-12.2 0zM.4 2.8a11.6 11.6 0 0 1 15.2 0L15.9 2" fill="currentColor"/></svg>
+            <svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="2" fill="currentColor"/><rect x="24" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".4"/></svg>
+          </span></div>
+          <div id="app"></div>
+          <div class="toast" id="toast" role="status"></div>
+          <div class="scrim" id="scrim"><div class="pop" role="dialog" aria-modal="true" aria-labelledby="popTitle" id="pop"></div></div>
+          <div class="homebar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side right">
+    <div class="box why-log" id="whyLog" aria-live="polite">
+      <strong>Presenter notes</strong>
+      Each “Why this?” explanation also appears here, so the room can follow along while you keep tapping.
+    </div>
+    <div class="box">
+      <h2>Pilot targets</h2>
+      <div class="kpis">
+        <div class="kpi">On-time pickup<b>≥ 95%</b></div>
+        <div class="kpi">Jobs accepted within 2 h<b>≥ 80%</b></div>
+        <div class="kpi">Scheduled share of airport trips<b>≥ 10%</b></div>
+        <div class="kpi">Early-morning driver earnings<b>+20%</b></div>
+        <div class="kpi">Live-ride ETA guardrail<b>≤ +5%</b></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const app = $('#app');
+
+const CITIES = {
+  lisbon: {cur:'EUR', fx:1, base:14.21, fmt:v=>`${v.toFixed(2)} €`, pick:'Rua Augusta 24, Baixa', dest:'Lisbon Airport (LIS), T1', short:'LIS', driver:'Rui', plate:'AQ-27-PM', flight:'TP1347', home:'Baixa'},
+  warsaw: {cur:'PLN', fx:4.3, base:12.47, fmt:v=>`${v.toFixed(2)} zł`, pick:'ul. Nowy Świat 15', dest:'Warsaw Chopin Airport (WAW)', short:'WAW', driver:'Paweł', plate:'WX 4821K', flight:'LO3911', home:'Śródmieście'},
+  nairobi:{cur:'KES', fx:140, base:8.52, fmt:v=>`KSh ${Math.round(v).toLocaleString('en-US')}`, pick:'Argwings Kodhek Rd, Kilimani', dest:'JKIA Terminal 1A', short:'NBO', driver:'Brian', plate:'KDK 512J', flight:'KQ101', home:'Kilimani'}
+};
+const CATS = [
+  {id:'bolt', name:'Bolt', mult:1, eta:'4', seats:4, color:'#E9E2F7'},
+  {id:'comfort', name:'Comfort', mult:1.3, eta:'4', seats:4, color:'#E3ECF5'},
+  {id:'xl', name:'XL', mult:1.68, eta:'4', seats:6, color:'#ECEDEE'}
+];
+
+const S = {
+  role:'rider', screen:'home', city:'lisbon', win:7, why:true,
+  dayIdx:1, time:'05:00', mode:'depart', depTime:'07:40', flightNo:'', cat:'bolt',
+  booked:false, sim:'ontime', rating:5, compliments:new Set(['Punctual']),
+  jobs:{a:false,b:false}, driverConfirmed:false, seen:new Set()
+};
+
+const C = () => CITIES[S.city];
+const price = cat => CATS.find(c=>c.id===cat).mult * C().base * C().fx;
+const fee = cat => price(cat) * 0.10; /* scheduling premium, built into one locked price */
+const money = v => C().fmt(v);
+const days = () => {
+  const out=[], n=new Date();
+  for(let i=0;i<8;i++){const d=new Date(n);d.setDate(n.getDate()+i);out.push(d);}
+  return out;
+};
+const dayLabel = i => {
+  const d = days()[i];
+  if(i===0) return 'today';
+  if(i===1) return 'tomorrow';
+  return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+};
+const minus = (t, m) => { let [h,mm]=t.split(':').map(Number); let x=h*60+mm-m; x=(x+1440)%1440; return `${String(Math.floor(x/60)).padStart(2,'0')}:${String(x%60).padStart(2,'0')}`; };
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+/* ---------- icons ---------- */
+const I = {
+  menu:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg>',
+  back:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4 6.5 10l6 6"/></svg>',
+  close:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 5 10 10M15 5 5 15"/></svg>',
+  search:'<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg>',
+  cal:'<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2v4M13 2v4"/></svg>',
+  clock:'<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 6v4l3 2"/></svg>',
+  lock:'<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/></svg>',
+  shield:'<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 2 4 6v7c0 6.2 4.2 11 10 13 5.8-2 10-6.8 10-13V6z" fill="#34D186"/><path d="m9.5 14 3 3 6-6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  plane:'<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M18 11.5v-1.6l-6.4-3.8V2.4a1.6 1.6 0 0 0-3.2 0v3.7L2 9.9v1.6l6.4-1.9v3.8l-1.8 1.4V16l3.4-1 3.4 1v-1.2l-1.8-1.4V9.6z"/></svg>',
+  home:'<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2 2 9h2.5v8h4v-5h3v5h4V9H18z"/></svg>',
+  rides:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2v4M13 2v4"/></svg>',
+  acct:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="8.5" r="2.5"/><path d="M5.5 15.5c1-2 2.6-3 4.5-3s3.5 1 4.5 3"/></svg>',
+  chat:'<svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3c-4.4 0-8 2.9-8 6.5 0 1.8.9 3.4 2.4 4.6L4 17l3.6-1.6c.8.2 1.6.3 2.4.3 4.4 0 8-2.9 8-6.5S14.4 3 10 3z"/></svg>',
+  phone:'<svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M5.6 2.5 3.4 3.4c-.7.3-1 1-.9 1.8.8 5.4 5 9.6 10.4 10.4.8.1 1.5-.2 1.8-.9l.9-2.2-3.4-1.6-1.4 1.5c-2-.9-3.7-2.6-4.6-4.6l1.5-1.4z"/></svg>'
+};
+const car = (w=86, body='#F2F3F4', accent='#34D186') => `<svg width="${w}" height="${w*0.42}" viewBox="0 0 120 50" aria-hidden="true"><path d="M8 34c0-5 2-8 8-9l14-3 12-10c3-2 6-3 10-3h24c4 0 7 1 10 4l9 9 13 2c4 1 6 4 6 8v5c0 2-1 3-3 3H11c-2 0-3-1-3-3z" fill="${body}" stroke="#2A2D30" stroke-width="1.6"/><path d="M38 21 47 13c2-1.5 4-2 6-2h10v10z" fill="#9DB7C9"/><path d="M67 11h12c3 0 5 1 7 3l7 7H67z" fill="#9DB7C9"/><rect x="58" y="27" width="40" height="5" rx="2" fill="${accent}"/><circle cx="30" cy="40" r="8" fill="#2A2D30"/><circle cx="30" cy="40" r="3.5" fill="#C9CDD1"/><circle cx="96" cy="40" r="8" fill="#2A2D30"/><circle cx="96" cy="40" r="3.5" fill="#C9CDD1"/></svg>`;
+const darkCar = w => car(w, '#2B2E33', '#3A3E44');
+
+const mapSvg = (route) => `<svg viewBox="0 0 370 820" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <rect width="370" height="820" fill="var(--map)"/>
+  <path d="M-10 640 C80 610 120 700 240 670 S360 690 390 660 V830 H-10z" fill="var(--water)"/>
+  <g fill="#E3E8E3"><rect x="24" y="90" width="90" height="70" rx="6"/><rect x="140" y="70" width="70" height="110" rx="6"/><rect x="240" y="120" width="110" height="60" rx="6"/><rect x="40" y="220" width="120" height="80" rx="6"/><rect x="200" y="240" width="80" height="120" rx="6"/><rect x="300" y="230" width="60" height="70" rx="6"/><rect x="30" y="360" width="80" height="110" rx="6"/><rect x="140" y="400" width="110" height="70" rx="6"/><rect x="280" y="380" width="70" height="110" rx="6"/><rect x="60" y="520" width="140" height="60" rx="6"/></g>
+  <g fill="#D7E8D7"><rect x="250" y="520" width="90" height="70" rx="10"/><circle cx="100" cy="190" r="20"/></g>
+  <g stroke="var(--road)" stroke-width="9" fill="none" stroke-linecap="round"><path d="M-10 200 C100 210 200 190 380 215"/><path d="M128 -10 C120 200 135 420 118 830"/><path d="M-10 340 C120 330 240 350 380 320"/><path d="M270 -10 C280 160 255 330 300 520"/><path d="M-10 490 C140 500 220 480 380 505"/></g>
+  <g stroke="#D3D8D3" stroke-width="3" fill="none"><path d="M-10 270 H380"/><path d="M190 -10 V600"/><path d="M-10 420 C100 430 250 410 380 430"/></g>
+  ${route?`<path d="M118 470 C125 380 150 345 210 338 S290 300 300 220 S320 140 330 110" stroke="#5B5CE8" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="118" cy="470" r="8" fill="#34D186" stroke="#fff" stroke-width="3"/><circle cx="330" cy="110" r="8" fill="#5B5CE8" stroke="#fff" stroke-width="3"/>`:`<circle cx="160" cy="330" r="9" fill="#3D7CF0" stroke="#fff" stroke-width="3"/><circle cx="160" cy="330" r="22" fill="#3D7CF0" opacity=".15"/>`}
+</svg>`;
+
+/* ---------- reasoning ---------- */
+const WHY = {
+  later:{t:'“Later” sits right next to “Now”', p:'Planned trips are known hours ahead, but today Bolt only answers “now”. Putting “Later” beside “Now” adds scheduling without a new menu to learn.', ev:'Uber’s scheduled rides in India were booked about 9 hours ahead on average, peaking at 4–6 am for flights.', r:'Requirement R1'},
+  flight:{t:'Ask about the flight, not just the time', p:'Riders get pickup times wrong at 4 am. For departures we suggest a pickup time; for arrivals the pickup follows the actual landing time, with 60 minutes of free waiting.', ev:'Airport trips are 15% of Uber’s mobility bookings; early flyers and arriving travellers are the two highest-stakes segments.', r:'Requirement R1, edge case: flight delayed'},
+  price:{t:'“Lock your price, beat the surge”', p:'On demand at 4 am, most rides surge to 1.4× and many riders give up while searching. A scheduled ride has one locked price: the normal fare plus a 10% premium, still well below surge. 8 points of the premium go to the driver as a commitment bonus; Bolt keeps 2.', ev:'On demand, 68 of 100 early airport bookings complete; scheduled, 97 do. In the three pilot cities Bolt earns about €3,030 a day more (+62%).', r:'Section 1.3: product proposition and business model'},
+  guarantee:{t:'On time, or Bolt pays', p:'The promise is the product. If the driver is more than 10 minutes late, the rider automatically gets twice the premium back as credit, with no complaint needed.', ev:'Lyft credits riders automatically when a scheduled airport ride is late; Grab issues vouchers when it can’t assign a driver.', r:'Edge case: driver late'},
+  confirm:{t:'Pre-authorise the card at booking', p:'A 4 am pickup is the wrong moment for a payment failure. Pre-authorising also protects the driver who commits early. Cancelling is free until 60 minutes before pickup.', ev:'Careem charges more for “Later” rides because captains turn down other work to fulfil them.', r:'Edge case: payment fails, rider cancels'},
+  booked:{t:'Reminders at the moments that matter', p:'Riders get a reminder the evening before and see driver details 30 minutes before pickup. Drivers confirm at T–60, so the job is never silently abandoned.', ev:'Grab reserves a driver at least an hour ahead to leave time to reach the pickup.', r:'Requirement R6'},
+  assigned:{t:'Driver details at T–30', p:'The driver committed in advance and confirmed at T–60. Showing details 30 minutes ahead turns a worry (“will anyone come?”) into a plan.', ev:'Dispatch shield: the driver gets no live offers that would make them late for this pickup.', r:'Requirement R5'},
+  swap:{t:'A dropped driver is Bolt’s problem, not the rider’s', p:'If no driver confirms by T–60, or one drops out, priority dispatch starts at T–20 with a bonus that rises every 3 minutes. The rider is told first, before they notice anything.', ev:'Lyft gives scheduled rides first priority in matching; Grab manually contacts nearby drivers if allocation fails.', r:'Fallback: priority dispatch'},
+  flightdelay:{t:'Pickup follows the plane', p:'When the flight is late, the pickup moves with it and the driver is paid for waiting. Nobody has to call anyone.', ev:'Uber Reserve at airports includes up to 60 minutes of free waiting.', r:'Edge case: flight delayed'},
+  late:{t:'Late? Credit lands automatically', p:'The rider still gets the ride and a credit of twice the premium, without asking for it. That removes most overcharge-style tickets before they are written.', ev:'Lyft: $15 credit if more than 10 minutes late, $50 if unmatched.', r:'Edge case: driver over 10 minutes late'},
+  nodriver:{t:'If Bolt fails, the rider is made whole', p:'Full refund plus credit, and a taxi reimbursed up to a cap. A failed promise must cost Bolt more than it costs the rider, or the guarantee means nothing.', ev:'Kill criterion: stop the pilot if on-time stays below 90% after eight weeks.', r:'Edge case: no driver at all'},
+  cancel:{t:'Fair cancellation for both sides', p:'Free until 60 minutes before pickup. After that the scheduling premium is kept and the assigned driver is paid for the time they set aside.', ev:'Lyft charges a cancellation fee inside 30 minutes; Grab compensates drivers for last-minute cancellations.', r:'Edge case: rider cancels late'},
+  rating:{t:'On-time pickups are the north star', p:'Every completed ride feeds the metric that decides whether the pilot scales: share of scheduled rides picked up within 5 minutes of the slot.', ev:'Pilot target: ≥ 95% on time, with live-ride ETAs in pilot zones no worse than +5%.', r:'Success metrics'},
+  board:{t:'Drivers choose jobs; nothing is forced', p:'A scheduled job is a commitment with a cost. Drivers pick from a board filtered by time, distance and airport, and see the fare and bonus before they accept.', ev:'Lyft lets drivers browse scheduled rides up to 7 days ahead on a map; 88% of Grab drivers in Singapore who tried advance bookings want to continue.', r:'Requirement R3'},
+  accept:{t:'Accepting protects the driver’s day', p:'Once accepted, dispatch stops sending live rides that would make the driver late. Only drivers with a 4.7+ rating, low cancellations and a short course can accept.', ev:'Grab requires mandatory training and makes earlier jobs finish before an advance booking.', r:'Requirements R4 and R5'},
+  t60:{t:'One tap at T–60', p:'The driver confirms an hour before pickup. Releasing earlier is free; releasing later or not showing suspends access to scheduled jobs for 14 days.', ev:'Lyft removes scheduled-ride access for 14 days after too many cancellations.', r:'Requirement R6, fallback rules'},
+  earnings:{t:'“Start your day with a guaranteed fare”', p:'Early-morning drivers are online but idle. Two booked jobs turn idle minutes into paid ones.', ev:'Illustrative model: a 4:30–7:30 block rises from about €46 to €73 (+58%); an 8-hour day from €144 to €171 (+19%).', r:'Supply side'}
+};
+
+const popup = (key, after) => {
+  const w = WHY[key];
+  $('#whyLog').innerHTML = `<strong>${esc(w.t)}</strong>${esc(w.p)}<div class="ev">${esc(w.ev)}</div>`;
+  if(!S.why){ after && after(); return; }
+  const pop = $('#pop');
+  pop.innerHTML = `<div class="grab"></div><span class="why">${I.shield.replace('width="28" height="28"','width="14" height="14"')} Why this?</span>
+    <h3 id="popTitle">${esc(w.t)}</h3><p>${esc(w.p)}</p>
+    <div class="ev"><b>Evidence</b>${esc(w.ev)}</div><div class="tag">${esc(w.r)}</div>
+    <button class="cta" type="button" id="popOk">Got it</button>`;
+  $('#scrim').classList.add('open');
+  const done = () => { $('#scrim').classList.remove('open'); $('#scrim').onclick=null; after && after(); };
+  $('#popOk').onclick = done; $('#popOk').focus();
+  $('#scrim').onclick = e => { if(e.target.id==='scrim') done(); };
+};
+const toast = msg => { const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200); };
+const go = (screen, whyKey) => {
+  const run = () => { S.screen = screen; render(); };
+  if (whyKey && !S.seen.has(whyKey)) { S.seen.add(whyKey); popup(whyKey, run); } else run();
+};
+
+/* ---------- rider screens ---------- */
+const tabbar = on => `<div class="tabbar"><span class="${on==='home'?'on':''}">${I.home}Home</span><span class="${on==='rides'?'on':''}">${I.rides}Rides</span><span>${I.acct}Account</span></div>`;
+
+const R = {};
+R.home = () => `
+  <div class="map">${mapSvg(false)}</div>
+  <div class="topbar" style="position:absolute;left:0;right:0"><button class="iconbtn" aria-label="Menu" style="background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12)">${I.menu}</button></div>
+  <div class="sheet"><div class="grab"></div>
+    ${S.booked?`<button class="upcoming" type="button" data-go="confirmed"><span style="font-size:22px">${I.cal}</span><span style="flex:1"><b>Airport ride ${esc(dayLabel(S.dayIdx))}, ${S.time}</b><span class="sub">Price locked at ${money(price(S.cat)+fee(S.cat))} · driver confirmed</span></span><span class="pill green">Scheduled</span></button>`:
+    `<div class="banner">${I.shield}<span style="flex:1">See ways to improve your app experience</span><span style="color:var(--muted)">✕</span></div>`}
+    <div class="h-xl">Go wherever, whenever.</div>
+    <div class="card rides-card">${car(70)}<span><b>Rides</b><span class="sub">Let’s get moving</span></span></div>
+    <div class="card where"><span class="q">${I.search}Where to?</span>
+      <div class="nl" role="group" aria-label="When"><button type="button" class="on">${I.clock}Now</button><button type="button" class="later" data-act="later">${I.cal}Later <span class="newtag">New</span></button></div></div>
+    ${tabbar('home')}
+  </div>`;
+
+R.schedule = () => {
+  const ds = days();
+  const times = []; for(let h=4; h<=9; h++) for(const m of [0,15,30,45]) times.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+  const suggest = minus(S.depTime, 150);
+  return `
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="Back">${I.back}</button><div class="h-lg">Schedule a ride</div></div>
+  <div class="scroll">
+    <div class="card route"><div class="r"><span class="dot" style="background:var(--green)"></span>${esc(C().pick)}</div><div class="r"><span class="dot" style="background:var(--violet)"></span>${esc(C().dest)}</div></div>
+    <div class="card flight"><div class="row" style="justify-content:space-between"><b style="font-size:14px">${I.plane} Airport trip</b><span class="pill dark">${C().short}</span></div>
+      <div class="flight-tabs" role="group" aria-label="Flight"><button type="button" data-mode="depart" class="${S.mode==='depart'?'on':''}">I’m catching a flight</button><button type="button" data-mode="arrive" class="${S.mode==='arrive'?'on':''}">I’m landing</button></div>
+      ${S.mode==='depart'?`<div class="field"><span class="sub">Departs at</span><input id="dep" type="time" value="${S.depTime}" aria-label="Flight departure time"></div>
+      <div class="hint">Suggested pickup <b>${suggest}</b>: 2 h 30 min before departure, including the drive. <button type="button" data-act="usesuggest" style="border:0;background:none;color:var(--green-ink);font-weight:800;padding:0;text-decoration:underline">Use it</button></div>`:
+      `<div class="field"><span class="sub">Flight no.</span><input id="fno" placeholder="${C().flight}" value="${esc(S.flightNo)}" aria-label="Flight number"></div>
+      <div class="hint">We track your flight. Pickup moves with the landing time, and the driver waits up to 60 minutes free.</div>`}
+    </div>
+    <div class="section-t">Day</div>
+    <div class="dates">${ds.map((d,i)=>`<button type="button" data-day="${i}" class="${S.dayIdx===i?'on':''}" ${i>S.win?'disabled':''}><small>${i===0?'Today':d.toLocaleDateString('en-GB',{weekday:'short'})}</small><b>${d.getDate()}</b></button>`).join('')}</div>
+    <div class="section-t">Pickup time</div>
+    <div class="times">${times.map(t=>`<button type="button" data-time="${t}" class="${S.time===t?'on':''}">${t}</button>`).join('')}</div>
+    <p class="note" style="margin-top:12px">Book from 30 minutes to ${S.win} days ahead. Free cancellation until 60 minutes before pickup.</p>
+  </div>
+  <div class="footer"><button class="cta" type="button" data-act="toOptions">Pickup ${esc(dayLabel(S.dayIdx))} at ${S.time}</button></div>`;
+};
+
+R.options = () => `
+  <div class="map" style="height:46%">${mapSvg(true)}</div>
+  <div class="topbar" style="position:absolute;left:0;right:0"><button class="iconbtn" data-go="schedule" aria-label="Back" style="background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12)">${I.back}</button>
+    <div class="card" style="flex:1;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:10px 12px;font-size:14px;font-weight:700;display:flex;gap:8px;align-items:center">${I.cal}${esc(dayLabel(S.dayIdx))}, ${S.time} · ${C().short}</div></div>
+  <div class="sheet" style="top:40%;padding-top:0">
+    <button type="button" class="lockbar" data-act="whyprice">${I.lock} Price locked at booking · no surge</button>
+    <div style="flex:1;overflow:auto">
+    ${CATS.map(c=>{const p=price(c.id), f=fee(c.id); return `<button type="button" class="opt ${S.cat===c.id?'on':''}" data-cat="${c.id}">
+      <span style="width:62px;flex:none">${car(62, c.color)}</span>
+      <span class="meta"><b>${c.name} <span class="pill green" style="vertical-align:2px">On time or credit</span></b><span class="sub">${c.seats} seats · driver confirmed ahead</span></span>
+      <span class="price"><b>${money(p+f)}</b><span class="surge">on demand ~${money(p*1.32)}</span></span></button>`}).join('')}
+    <p class="note" style="padding:4px 10px">One locked price, including a 10% scheduling premium. On demand at this hour, most rides surge to 1.4×.</p>
+    </div>
+    <div class="footer" style="margin:0 -16px"><div class="row" style="margin-bottom:10px;font-size:14px;font-weight:600"><span class="pill dark"> Pay</span>Apple Pay</div>
+      <div class="row"><button class="cta" type="button" data-act="toReview">Schedule ${CATS.find(c=>c.id===S.cat).name}</button><button class="iconbtn" type="button" data-act="whyguarantee" aria-label="Why the on-time guarantee" style="width:52px;height:52px;background:var(--green-tint);color:var(--green-ink)">${I.shield.replace('width="28" height="28"','width="24" height="24"')}</button></div></div>
+  </div>`;
+
+R.review = () => { const p=price(S.cat), f=fee(S.cat); return `
+  <div class="topbar"><button class="iconbtn" data-go="options" aria-label="Back">${I.back}</button><div class="h-lg">Review your booking</div></div>
+  <div class="scroll">
+    <div class="card" style="padding:14px;margin-bottom:12px"><div class="sub">Pickup</div><div class="big-time" style="margin:6px 0 4px">${S.time}</div><div style="font-weight:700">${esc(dayLabel(S.dayIdx))}${S.mode==='arrive'&&S.flightNo?` · tracking ${esc(S.flightNo.toUpperCase())}`:''}</div></div>
+    <div class="card route"><div class="r"><span class="dot" style="background:var(--green)"></span>${esc(C().pick)}</div><div class="r"><span class="dot" style="background:var(--violet)"></span>${esc(C().dest)}</div></div>
+    <div class="card" style="padding:4px 14px;margin-bottom:12px">
+      <div class="kv total"><span>${CATS.find(c=>c.id===S.cat).name}, locked price</span><span>${money(p+f)}</span></div><div class="note" style="padding:0 0 8px">Includes a 10% scheduling premium · on demand ~${money(p*1.32)}</div></div>
+    <div class="alert ok">${I.shield.replace('width="28" height="28"','width="20" height="20"')}<span><b>On time or credit.</b> If your driver is more than 10 minutes late, you get ${money(2*f)} back automatically.</span></div>
+    <p class="note">Free cancellation until ${minus(S.time,60)}. After that the scheduling premium is kept. Your card is pre-authorised now and charged after the ride.</p>
+  </div>
+  <div class="footer"><button class="cta" type="button" data-act="confirm">Confirm booking</button></div>`; };
+
+R.confirmed = () => `
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="Close">${I.close}</button><div class="h-lg">Ride scheduled</div></div>
+  <div class="scroll">
+    <div style="text-align:center;padding:10px 0 16px">${I.shield.replace('width="28" height="28"','width="56" height="56"')}<div class="big-time" style="margin-top:10px">${S.time}</div><div style="font-weight:700;margin-top:6px">${esc(dayLabel(S.dayIdx))} · ${C().short}</div><div class="sub" style="margin-top:4px">${money(price(S.cat)+fee(S.cat))}, price locked</div></div>
+    <div class="card" style="padding:12px 14px;margin-bottom:12px"><ul class="timeline">
+      <li class="done"><i></i><div>Booked and paid<span>Card pre-authorised</span></div></li>
+      <li class="${S.sim==='swap'?'':'done'}"><i></i><div>Driver committed<span>Accepted from the drivers’ scheduled board</span></div></li>
+      <li class="now"><i></i><div>Reminder the evening before<span>Plus driver confirmation at ${minus(S.time,60)}</span></div></li>
+      <li><i></i><div>Driver details at ${minus(S.time,30)}<span>Name, car and live location</span></div></li>
+      <li><i></i><div>Pickup at ${S.time}<span>${S.mode==='arrive'?'60 minutes free waiting after landing':'5 minutes free waiting'}</span></div></li></ul></div>
+    <div class="row" style="gap:8px"><button class="cta ghost" type="button" data-act="cal" style="flex:1;font-size:14px">Add to calendar</button><button class="cta ghost" type="button" data-act="cancel" style="flex:1;font-size:14px">Cancel ride</button></div>
+  </div>
+  <div class="footer"><button class="cta" type="button" data-act="dayof">Skip to day of travel</button></div>`;
+
+const simAlert = () => ({
+  ontime:'',
+  swap:`<div class="alert warn"><b>!</b><span>Your first driver couldn’t make it. ${esc(C().driver)} has taken over, with priority dispatch. Your price hasn’t changed.</span></div>`,
+  flight:`<div class="alert warn">${I.plane}<span>${esc(S.flightNo?S.flightNo.toUpperCase():C().flight)} is landing 35 minutes late. Pickup moved to ${minus(S.time,-35)}; ${esc(C().driver)} waits free for 60 minutes.</span></div>`,
+  late:`<div class="alert bad"><b>!</b><span>${esc(C().driver)} is running 12 minutes late. ${money(2*fee(S.cat))} credit has been added to your account.</span></div>`
+}[S.sim] || '');
+
+R.assigned = () => S.sim==='nodriver' ? `
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="Close">${I.close}</button><div class="h-lg">We couldn’t find a driver</div></div>
+  <div class="scroll">
+    <div class="alert bad"><b>!</b><span>Priority dispatch found no driver in time. This is on us.</span></div>
+    <div class="card" style="padding:4px 14px;margin-bottom:12px">
+      <div class="kv"><span>Refund of your booking</span><span>${money(price(S.cat)+fee(S.cat))}</span></div>
+      <div class="kv"><span>Credit for your next ride</span><span>${money(2*fee(S.cat))}</span></div>
+      <div class="kv"><span>Taxi reimbursed up to</span><span>${money(price(S.cat)*1.5)}</span></div></div>
+    <p class="note">Upload your taxi receipt in the app within 7 days. No support ticket needed for the refund or credit.</p>
+  </div>
+  <div class="footer"><button class="cta" type="button" data-go="home">Back to home</button></div>` : `
+  <div class="map" style="height:34%">${mapSvg(true)}</div>
+  <div class="sheet" style="top:24%;overflow:auto">
+    <div class="grab"></div>
+    ${simAlert()}
+    <div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="pill green">Scheduled · ${S.sim==='flight'?minus(S.time,-35):S.time}</span><span class="sub">${S.sim==='late'?'Arriving in 12 min':'Arriving on time'}</span></div>
+    <div class="driver"><div class="avatar">${esc(C().driver[0])}<span class="star">★</span></div><div class="h-lg" style="margin-top:8px">${esc(C().driver)}</div><div class="sub"><span style="color:var(--green-deep)">★</span> 4.9 · committed ${S.sim==='swap'?'via priority dispatch':'yesterday'}</div>
+      <div class="actions3"><span><i>${I.chat}</i>Chat</span><span><i>${I.phone}</i>Internet call</span><span><i>${I.phone}</i>Call</span></div></div>
+    <div class="card" style="padding:12px 14px;margin:6px 0 10px;font-size:13px;line-height:1.45">${esc(C().driver)} is a top driver for scheduled rides: 4.7+ rating and under 5% cancellations.</div>
+    <div class="carimg">${darkCar(220)}<div style="font-weight:800;margin:6px 0 2px">${esc(C().plate)}</div><div class="sub">Toyota Corolla · white</div></div>
+    <div class="row" style="gap:8px;margin:12px 0 30px"><button class="cta ghost" type="button" data-act="cancel" style="flex:1">Cancel ride</button><button class="cta" type="button" data-act="finish" style="flex:1">Complete ride</button></div>
+  </div>`;
+
+R.rating = () => `
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="Close">${I.close}</button></div>
+  <div class="scroll">
+    <div class="card" style="padding:12px 14px;margin-bottom:12px"><div class="kv"><span>Apple Pay</span><b>${money(price(S.cat)+fee(S.cat))}</b></div>
+      <div class="alert ok" style="margin:4px 0 6px">${I.shield.replace('width="28" height="28"','width="20" height="20"')}<span>${S.sim==='late'?`Your driver was late, so ${money(2*fee(S.cat))} credit was added. Thanks for your patience.`:'Picked up on time, as promised. Your price stayed locked.'}</span></div></div>
+    <div style="text-align:center;padding:8px 0 14px;border-bottom:1px solid var(--line)"><div class="h-lg">How was your ride?</div>
+      <div class="stars" role="group" aria-label="Rating">${[1,2,3,4,5].map(n=>`<button type="button" data-star="${n}" aria-label="${n} stars" style="opacity:${n<=S.rating?1:.25}">★</button>`).join('')}</div><div class="sub">${['','Poor','Fair','Good','Great','Excellent!'][S.rating]}</div></div>
+    <div style="text-align:center;padding:16px 0"><div class="h-lg" style="margin-bottom:12px">Give a compliment?</div>
+      <div class="chips">${['On time','Great service','Car quality','Good route','Punctual','Safe driving'].map(c=>`<button type="button" data-chip="${c}" class="${S.compliments.has(c)?'on':''}">${c}</button>`).join('')}</div></div>
+  </div>
+  <div class="footer"><button class="cta" type="button" data-act="done">Done</button></div>`;
+
+/* ---------- driver screens ---------- */
+const jobs = () => [
+  {id:'a', t:'05:00', when:'Tomorrow', from:C().pick, to:C().dest, dist:'2.1 km from you', fare:Math.round(price('bolt')*80)/100, bonus:Math.round(price('bolt')*8)/100, tag:'Departure'},
+  {id:'b', t:'06:35', when:'Tomorrow', from:`${C().dest} · ${C().flight}`, to:C().home, dist:'At the airport', fare:Math.round(price('bolt')*80)/100, bonus:Math.round(price('bolt')*8)/100, tag:'Arrival, flight tracked'}
+];
+const D = {};
+D.board = () => `
+  <div class="topbar"><button class="iconbtn" aria-label="Menu">${I.menu}</button><div class="h-lg" style="flex:1">Scheduled jobs</div><span class="pill green">Eligible</span></div>
+  <div class="scroll">
+    <div class="filters"><span class="on">Tomorrow 4–8 am</span><span>Near home</span><span>Airport</span><span>All days</span></div>
+    ${jobs().map(j=>`<button type="button" class="job ${S.jobs[j.id]?'mine':''}" data-job="${j.id}">
+      <div class="top"><span><span class="t">${j.t}</span> <span class="sub">${j.when}</span></span><span class="earn"><b>${money(j.fare+j.bonus)}</b><span>incl. ${money(j.bonus)} scheduled bonus</span></span></div>
+      <div class="ln"><span class="dot" style="background:var(--green)"></span>${esc(j.from)}</div>
+      <div class="ln"><span class="dot" style="background:var(--violet)"></span>${esc(j.to)}</div>
+      <div class="row" style="margin-top:10px;justify-content:space-between"><span class="pill dark">${j.tag}</span><span class="sub">${j.dist}${S.jobs[j.id]?' · <b style="color:var(--green-ink)">Accepted</b>':''}</span></div></button>`).join('')}
+    <div class="card" style="padding:12px 14px"><b style="font-size:14px">Your early block with 2 jobs</b>
+      <div class="earnbar"><span style="width:60%;background:var(--green)"></span><span style="width:15%;background:#C4C9C2"></span><span style="width:25%;background:#ECEEEB"></span></div>
+      <div class="sub">60% of the time with a passenger, up from 40%. About +58% earnings for 4:30–7:30.</div>
+      <button type="button" data-act="whyearn" style="border:0;background:none;color:var(--green-ink);font-weight:800;padding:6px 0 0;font-size:13px">How we worked this out</button></div>
+  </div>
+  <div class="footer"><button class="cta" type="button" data-act="toT60" ${S.jobs.a||S.jobs.b?'':'disabled'}>Go to tomorrow, 1 hour before</button></div>`;
+
+D.job = () => { const j = jobs().find(x=>x.id===S.openJob); return `
+  <div class="topbar"><button class="iconbtn" data-go="board" aria-label="Back">${I.back}</button><div class="h-lg">${j.t} · ${j.when}</div></div>
+  <div class="scroll">
+    <div class="card route"><div class="r"><span class="dot" style="background:var(--green)"></span>${esc(j.from)}</div><div class="r"><span class="dot" style="background:var(--violet)"></span>${esc(j.to)}</div></div>
+    <div class="card" style="padding:4px 14px;margin-bottom:12px">
+      <div class="kv"><span>Fare (your share)</span><span>${money(j.fare)}</span></div>
+      <div class="kv"><span>Scheduled bonus</span><span>${money(j.bonus)}</span></div>
+      <div class="kv"><span>Waiting after 5 min${j.id==='b'?' (60 min free at arrivals)':''}</span><span>Paid</span></div>
+      <div class="kv total"><span>You earn</span><span>${money(j.fare+j.bonus)}</span></div></div>
+    <div class="alert ok">${I.shield.replace('width="28" height="28"','width="20" height="20"')}<span>We won’t send you live rides that would make you late for this pickup.</span></div>
+    <p class="note">Release for free until 60 minutes before. Releasing later or not showing up pauses scheduled jobs for 14 days.</p>
+  </div>
+  <div class="footer">${S.jobs[j.id]?`<button class="cta ghost" type="button" data-act="release">Release job</button>`:`<button class="cta" type="button" data-act="accept">Accept job</button>`}</div>`; };
+
+D.t60 = () => { const j = jobs().find(x=>S.jobs[x.id]) || jobs()[0]; return `
+  <div class="map">${mapSvg(true)}</div>
+  <div class="sheet"><div class="grab"></div>
+    <div class="row" style="justify-content:space-between"><span class="pill amber">Pickup in 60 min</span><span class="sub">${j.t}</span></div>
+    <div class="h-xl" style="margin-top:10px">Confirm you’re on your way soon</div>
+    <div class="card route"><div class="r"><span class="dot" style="background:var(--green)"></span>${esc(j.from)}</div><div class="r"><span class="dot" style="background:var(--violet)"></span>${esc(j.to)}</div></div>
+    ${S.driverConfirmed?`<div class="alert ok">${I.shield.replace('width="28" height="28"','width="20" height="20"')}<span>Confirmed. Navigation starts at ${minus(j.t,25)} with a buffer. The rider sees your details at ${minus(j.t,30)}.</span></div>`:''}
+    <div class="row" style="gap:8px;margin-bottom:34px">${S.driverConfirmed?`<button class="cta" type="button" data-go="board">Back to jobs</button>`:`<button class="cta ghost" type="button" data-act="release" style="flex:1">Release</button><button class="cta" type="button" data-act="drvconfirm" style="flex:2">I’ll be there</button>`}</div>
+  </div>`; };
+
+/* ---------- scenarios ---------- */
+const BOOK = [['home','Tap “Later” on Home'],['schedule','Pick day, time and flight'],['options','See the locked price'],['review','Review and confirm'],['confirmed','Booking confirmed']];
+const SCEN = {
+  happy:{grp:'Rider',title:'Early flight, all goes well',desc:'Book a 5 am airport ride; the driver arrives on time.',role:'rider',sim:'ontime',mode:'depart',steps:[...BOOK,['assigned','Driver arrives on time'],['rating','Rate the ride']]},
+  arrive:{grp:'Rider',title:'Flight lands late',desc:'Book a pickup at arrivals; the flight is 35 minutes late.',role:'rider',sim:'flight',mode:'arrive',steps:[...BOOK,['assigned','Pickup moves with the flight'],['rating','Rate the ride']]},
+  swap:{grp:'Rider',title:'Driver drops out',desc:'The committed driver cancels; Bolt finds a new one.',role:'rider',sim:'swap',mode:'depart',steps:[...BOOK,['assigned','New driver via priority dispatch'],['rating','Rate the ride']]},
+  late:{grp:'Rider',title:'Driver runs late',desc:'Pickup is 12 minutes late; credit is paid automatically.',role:'rider',sim:'late',mode:'depart',steps:[...BOOK,['assigned','Late driver, automatic credit'],['rating','Rate; credit confirmed']]},
+  nodriver:{grp:'Rider',title:'No driver found',desc:'Bolt misses the promise and makes the rider whole.',role:'rider',sim:'nodriver',mode:'depart',steps:[...BOOK,['assigned','Refund, credit and taxi cover']]},
+  cancel:{grp:'Rider',title:'Rider cancels',desc:'Plans change; cancel for free before the cut-off.',role:'rider',sim:'ontime',mode:'depart',steps:[...BOOK,['cancel','Cancel for free']]},
+  driver:{grp:'Driver',title:'Driver picks up jobs',desc:'Browse the board, accept a 5 am job, confirm an hour before.',role:'driver',sim:'ontime',mode:'depart',steps:[['board','Browse scheduled jobs'],['job','Accept a 5 am job'],['t60','Confirm 1 hour before']]}
+};
+S.scen = 'happy'; S.stepIdx = 0;
+const steps = () => SCEN[S.scen].steps;
+const WHY_FOR = {schedule:'later', options:'price', confirmed:'confirm', rating:'rating', board:'board', t60:'t60', cancel:'cancel'};
+const simWhy = () => ({ontime:'assigned',swap:'swap',flight:'flightdelay',late:'late',nodriver:'nodriver'})[S.sim];
+
+const renderScen = () => {
+  let g = '';
+  $('#scen').innerHTML = Object.entries(SCEN).map(([k,v]) => {
+    const head = v.grp!==g ? `<div class="grp">${v.grp} scenarios</div>` : ''; g = v.grp;
+    return `${head}<button type="button" data-scen="${k}" aria-pressed="${S.scen===k}"><b>${v.title}</b><span>${v.desc}</span></button>`;
+  }).join('');
+};
+const syncStep = () => {
+  const list = steps();
+  const i = list.findIndex(s => s[0] === S.screen);
+  if (i >= 0) S.stepIdx = i;
+};
+const renderSteps = () => {
+  const list = steps();
+  $('#steps').innerHTML = list.map(([k,l],i)=>`<li><button type="button" data-step="${i}" ${S.stepIdx===i?'aria-current="step"':''}>${l}</button></li>`).join('');
+  $('#nowTxt').textContent = `Step ${S.stepIdx+1} of ${list.length}: ${list[S.stepIdx][1]}`;
+  $('#prevBtn').disabled = S.stepIdx===0;
+  $('#nextBtn').disabled = S.stepIdx===list.length-1;
+  $('#nextBtn').textContent = S.stepIdx===list.length-1 ? 'Done' : 'Next';
+};
+
+const render = () => {
+  if (S.screen !== 'cancel') syncStep();
+  const scr = S.screen==='cancel' ? 'confirmed' : S.screen;
+  const fn = S.role==='rider' ? R[scr] : D[scr];
+  app.innerHTML = `<div class="view">${fn()}</div>`;
+  renderSteps();
+};
+
+const gotoStep = i => {
+  const list = steps(); i = Math.max(0, Math.min(list.length-1, i));
+  S.stepIdx = i;
+  const scr = list[i][0];
+  $('#scrim').classList.remove('open');
+  if (['confirmed','assigned','rating','cancel'].includes(scr)) S.booked = true;
+  if (scr==='job' && !S.openJob) S.openJob='a';
+  if (scr==='t60' && !S.jobs.a && !S.jobs.b) S.jobs.a = true;
+  if (scr==='cancel') { S.screen='cancel'; render(); openCancel(); return; }
+  const key = scr==='assigned' ? simWhy() : WHY_FOR[scr];
+  go(scr, key);
+};
+
+const startScenario = k => {
+  const v = SCEN[k];
+  Object.assign(S, {scen:k, role:v.role, sim:v.sim, mode:v.mode, stepIdx:0, booked:false, dayIdx:1,
+    time: v.mode==='arrive' ? '06:30' : '05:00', cat:'bolt', rating:5, jobs:{a:false,b:false}, driverConfirmed:false, openJob:null, flightNo: v.mode==='arrive' ? C().flight : ''});
+  S.seen.clear();
+  renderScen();
+  S.screen = steps()[0][0];
+  $('#scrim').classList.remove('open');
+  render();
+  toast(`Scenario: ${v.title}`);
+};
+
+/* ---------- events ---------- */
+app.addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  const d = b.dataset;
+  if(d.go){ go(d.go); return; }
+  if(d.mode){ S.mode=d.mode; if(d.mode==='arrive'){S.time='06:30';} go('schedule', 'flight'); return; }
+  if(d.day){ S.dayIdx=+d.day; render(); return; }
+  if(d.time){ S.time=d.time; render(); return; }
+  if(d.cat){ S.cat=d.cat; render(); return; }
+  if(d.star){ S.rating=+d.star; render(); return; }
+  if(d.chip){ S.compliments.has(d.chip)?S.compliments.delete(d.chip):S.compliments.add(d.chip); render(); return; }
+  if(d.job){ S.openJob=d.job; go('job'); return; }
+  switch(d.act){
+    case 'later': go('schedule','later'); break;
+    case 'usesuggest': { const t=minus(S.depTime,150); const [h,m]=t.split(':').map(Number); S.time=`${String(h).padStart(2,'0')}:${String(Math.round(m/15)*15%60).padStart(2,'0')}`; if(Math.round(m/15)*15===60){S.time=`${String(h+1).padStart(2,'0')}:00`;} toast(`Pickup set to ${S.time}`); render(); break; }
+    case 'toOptions': go('options','price'); break;
+    case 'whyprice': popup('price'); break;
+    case 'whyguarantee': popup('guarantee'); break;
+    case 'toReview': go('review'); break;
+    case 'confirm': S.booked=true; go('confirmed','confirm'); break;
+    case 'cal': toast('Added to your calendar with a reminder'); popup('booked'); break;
+    case 'dayof': go('assigned', ({swap:'swap',flight:'flightdelay',late:'late',nodriver:'nodriver'})[S.sim] || 'assigned'); break;
+    case 'cancel': openCancel(); break;
+    case 'finish': go('rating','rating'); break;
+    case 'done': S.booked=false; S.seen.delete('rating'); toast('Thanks! Ride complete.'); go('home'); break;
+    case 'accept': S.jobs[S.openJob]=true; toast('Job accepted. Added to your day.'); go('board','accept'); break;
+    case 'release': S.jobs[S.openJob||'a']=false; S.driverConfirmed=false; toast('Released for free (more than 60 min before).'); go('board'); break;
+    case 'toT60': S.driverConfirmed=false; go('t60','t60'); break;
+    case 'drvconfirm': S.driverConfirmed=true; render(); break;
+    case 'whyearn': popup('earnings'); break;
+  }
+});
+app.addEventListener('change', e => {
+  if(e.target.id==='dep'){ S.depTime=e.target.value||S.depTime; render(); }
+  if(e.target.id==='fno'){ S.flightNo=e.target.value.slice(0,8); }
+});
+
+const openCancel = () => {
+  const late = S.screen==='assigned';
+  const pop = $('#pop');
+  pop.innerHTML = `<div style="text-align:center"><div class="grab"></div>
+    <div style="width:96px;height:96px;margin:6px auto 10px;border-radius:50%;background:#FDE4E7;display:grid;place-items:center;font-size:40px;color:var(--red);font-weight:800">✕</div>
+    <h3 id="popTitle">Are you sure?</h3>
+    <p>${late?`It’s less than 60 minutes to pickup, so the scheduling premium is kept and ${esc(C().driver)} is paid for the time set aside.`:`You can cancel for free until ${minus(S.time,60)}.`}</p></div>
+    <div class="kv" style="font-weight:700;margin:6px 0 12px"><span>Cancellation fee</span><span>${late?money(fee(S.cat)):money(0)}</span></div>
+    <button class="cta danger" type="button" id="cxYes">Cancel ride</button>
+    <button class="cta ghost" type="button" id="cxNo" style="margin-top:8px">Keep my ride</button>`;
+  $('#scrim').classList.add('open');
+  const close = () => $('#scrim').classList.remove('open');
+  $('#cxNo').onclick = close;
+  $('#cxYes').onclick = () => { close(); S.booked=false; toast(late?'Ride cancelled. Scheduling premium kept.':'Ride cancelled for free.'); popup('cancel', ()=>go('home')); };
+  $('#cxNo').focus();
+};
+
+$('#scen').addEventListener('click', e => { const b=e.target.closest('[data-scen]'); if(b) startScenario(b.dataset.scen); });
+$('#steps').addEventListener('click', e => { const b=e.target.closest('[data-step]'); if(b) gotoStep(+b.dataset.step); });
+$('#prevBtn').addEventListener('click', () => gotoStep(S.stepIdx-1));
+$('#nextBtn').addEventListener('click', () => gotoStep(S.stepIdx+1));
+$('#city').addEventListener('change', e=>{S.city=e.target.value; if(S.mode==='arrive') S.flightNo=C().flight; render(); toast(`Now in ${e.target.options[e.target.selectedIndex].text}: prices and places updated`);});
+$('#win').addEventListener('change', e=>{S.win=+e.target.value; if(S.dayIdx>S.win) S.dayIdx=1; render(); toast(`Riders can now book up to ${S.win} days ahead`);});
+$('#whySwitch').addEventListener('click', e=>{S.why=!S.why; e.currentTarget.setAttribute('aria-checked',String(S.why)); toast(S.why?'“Why this?” popups on':'“Why this?” popups off; notes still show on the right');});
+
+/* ---------- fit phone to viewport ---------- */
+const fit = () => {
+  const w = $('#phoneWrap');
+  const small = innerWidth <= 760;
+  const avail = small ? Math.min(innerWidth-24, 390)/390 : Math.min(1, (innerHeight-56)/844);
+  const s = Math.max(0.55, avail);
+  w.style.transform = `scale(${s})`;
+  w.style.height = `${844*s}px`; w.style.width = `${390*s}px`;
+  w.firstElementChild.style.transformOrigin='top left';
+  w.style.transform=''; w.firstElementChild.style.transform=`scale(${s})`;
+};
+addEventListener('resize', fit); fit();
+renderScen(); S.screen='home'; render();
+})();
+</script>
+</body>
+</html>
